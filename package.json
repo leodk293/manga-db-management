@@ -9,6 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "lucide-react": "^0.560.0",
+    "mongodb": "^7.0.0",
+    "mongoose": "^9.0.1",
+    "nanoid": "^5.1.6",
     "next": "16.0.8",
     "react": "19.2.1",
     "react-dom": "19.2.1"
