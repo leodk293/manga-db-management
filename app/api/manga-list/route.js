@@ -2,6 +2,18 @@ import { NextResponse } from "next/server";
 import MangaList from '../../../models/mangaList.model';
 import { connectMongoDB } from '../../../connectDB';
 
+// CORS headers helper
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*', // Allow all origins, or specify: 'https://anime-vista.netlify.app'
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+// Handle preflight OPTIONS request
+export const OPTIONS = async () => {
+    return NextResponse.json({}, { headers: corsHeaders });
+};
+
 export const GET = async (request) => {
     try {
         await connectMongoDB();
@@ -39,12 +51,12 @@ export const GET = async (request) => {
             success: true,
             count: mangaList.length,
             mangaList
-        });
+        }, { headers: corsHeaders });
     } catch (error) {
         console.error("Error fetching manga list:", error);
         return NextResponse.json(
             { error: "Failed to fetch manga list", details: error.message },
-            { status: 500 }
+            { status: 500, headers: corsHeaders }
         );
     }
 };
