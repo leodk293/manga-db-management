@@ -30,6 +30,82 @@ export default function Home() {
     };
   }
 
+  async function updateManga() { 
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const mangaListResponse = await fetch("/api/manga-list");
+      const mangaListData = await mangaListResponse.json();
+
+      if (!mangaListResponse.ok || !mangaListData.success) {
+        throw new Error(mangaListData.error || "Failed to fetch manga list");
+      }
+
+      const mangaList = mangaListData.mangaList || [];
+      if (mangaList.length === 0) {
+        setMessage({ type: "error", text: "No manga found to update." });
+        return;
+      }
+
+      let updatedCount = 0;
+      let unchangedCount = 0;
+      let failedCount = 0;
+
+      for (let i = 0; i < mangaList.length; i++) {
+        const manga = mangaList[i];
+
+        try {
+          const detailsResponse = await fetch(`https://api.jikan.moe/v4/manga/${manga.mangaId}`);
+          const detailsData = await detailsResponse.json();
+
+          if (!detailsResponse.ok || !detailsData.data) {
+            failedCount++;
+            continue;
+          }
+
+          const latestStatus = detailsData.data.status || "Unknown";
+          if (latestStatus === manga.status) {
+            unchangedCount++;
+          } else {
+            const updateResponse = await fetch("/api/update-manga-status", {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                mangaId: manga.mangaId,
+                status: latestStatus,
+              }),
+            });
+
+            if (updateResponse.ok) {
+              updatedCount++;
+            } else {
+              failedCount++;
+            }
+          }
+        } catch {
+          failedCount++;
+        }
+
+        // Keep requests below third-party API rate limits.
+        if (i < mangaList.length - 1) {
+          await delay(1000);
+        }
+      }
+
+      setMessage({
+        type: "success",
+        text: `Status update complete. Updated: ${updatedCount}, unchanged: ${unchangedCount}, failed: ${failedCount}.`,
+      });
+    } catch (error) {
+      setMessage({ type: "error", text: `Error: ${error.message}` });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // Store a single manga using the API route
   async function storeManga(mangaData) {
     try {
@@ -221,6 +297,13 @@ export default function Home() {
           className=" border border-white rounded-full p-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white hover:text-black transition"
         >
           {loading ? "Loading..." : "Store recommended manga"}
+        </button>
+        <button
+          onClick={updateManga}
+          disabled={loading}
+          className=" border border-white rounded-full p-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white hover:text-black transition"
+        >
+          {loading ? "Loading..." : "Update manga status"}
         </button>
         <button
           onClick={getTopManga}
